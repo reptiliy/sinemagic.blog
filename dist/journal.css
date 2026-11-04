@@ -37,10 +37,11 @@
   justify-content: center;
   align-items: center;
   gap: 12px;
-  width: 100%;
-  padding: 13px 18px;
+  width: fit-content;
+  align-self: flex-start;
+  padding: 9px 15px;
   border: 1px solid #6b4c38;
-  border-radius: 9px;
+  border-radius: 6px;
   color: #f5d8c3;
   background: linear-gradient(135deg, #36291f, #27231e);
   font: 700 14px/1.4 Manrope, Arial, sans-serif;
