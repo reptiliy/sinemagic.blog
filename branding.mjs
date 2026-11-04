@@ -30,6 +30,7 @@ export function branded(html,s,admin){
  const brand=(s.logo?'<img alt="" style="height:32px;max-width:110px;vertical-align:middle;object-fit:contain" src="'+s.logo+'"> ':'✦ ')+(s.name===defaults.name?'Sine<span>Magic</span>':name);
  return html.replace(/<title>.*?<\/title>/,()=>'<title>'+(admin?'Редакция · ':'')+name+'</title><meta name="description" content="'+desc+'"><meta name="keywords" content="'+escape(s.keywords)+'">'+icon)
  .replaceAll('✦ Sine<span>Magic</span>',()=>brand)
+ .replace('id="publisher">Редакция SineMagic',()=>'id="publisher">'+escape(process.env.JOURNAL_EDITOR_NAME||'Редакция '+s.name))
  .replace(/<p class="lead">.*?<\/p>/,()=>'<p class="lead">'+desc+'</p>')
  .replaceAll('SineMagic / Панель',()=>name+' / Панель').replaceAll('SineMagic Journal',()=>name+' Journal');
 }
