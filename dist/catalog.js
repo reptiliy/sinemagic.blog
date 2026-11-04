@@ -24,7 +24,7 @@ platformConfig.then(async config=>{
    if(coverUrl){
     const image=element('img','');image.src=coverUrl;image.alt=row.title;image.loading='lazy';cover.append(image);
     cover.classList.add('has-image');
-    if(row.coverPosition==='side')card.classList.add('side-cover');
+    image.onerror=()=>{image.remove();cover.classList.remove('has-image')};
    }
    const b=element('a',row.paid?'Открыть по подписке →':'Читать статью →');b.className='link';b.href='/articles/'+row.id;
    if(row.paid&&!sessionStorage.getItem(tokenKey))b.onclick=e=>{e.preventDefault();subscribe(row.title)};
