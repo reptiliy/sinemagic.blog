@@ -65,6 +65,9 @@ async function route(req,path){
   return withMedia(article.body);
  }
  const user=await identity(req);
+ if(path==='/api/account'&&req.method==='GET'){
+  return {isAdmin:user.id===env.ADMIN_USER_ID};
+ }
  if(path==='/api/admin/library'&&req.method==='GET'){
   if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
   const page=Number(new URL(req.url,'http://localhost').searchParams.get('page')||0);

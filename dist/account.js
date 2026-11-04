@@ -67,6 +67,15 @@ function account() {
   intro.textContent = 'Вы вошли в журнал.';
   tabs.remove();
   form.replaceChildren(submit);
+  journalApi('/api/account').then(user => {
+   if (!user.isAdmin || !dialog.isConnected) return;
+   const admin = document.createElement('a');
+   admin.href = '/admin';
+   admin.className = 'account-admin';
+   admin.textContent = 'Открыть админку →';
+   form.before(admin);
+   intro.textContent = 'Вам доступна панель управления журналом.';
+  }).catch(() => {});
   submit.textContent = 'Выйти из аккаунта';
   form.onsubmit = event => {
    event.preventDefault();
@@ -112,7 +121,12 @@ function account() {
     return;
    }
    sessionStorage.setItem(tokenKey, result.access_token);
-   location.reload();
+   const user = await journalApi('/api/account');
+   if (user.isAdmin && !/^\/admin\/?$/.test(location.pathname)) {
+    location.assign('/admin');
+   } else {
+    location.reload();
+   }
   } catch (error) {
    status.textContent = error.name === 'TimeoutError' || error instanceof TypeError ? 'Не удалось связаться с сервером. Попробуйте ещё раз.' : error.message;
   } finally {
@@ -128,4 +142,7 @@ const login = document.querySelector('#login');
 if (login) {
  login.onclick = account;
  if (sessionStorage.getItem(tokenKey)) login.textContent = 'Аккаунт ↗';
+}
+if (/^\/admin\/?$/.test(location.pathname) && !sessionStorage.getItem(tokenKey)) {
+ platformConfig.then(config => { if (config.connected) account(); });
 }

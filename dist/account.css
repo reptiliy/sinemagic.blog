@@ -53,3 +53,15 @@ dialog.account-dialog::backdrop { background: #080807b8; backdrop-filter: blur(8
   dialog.account-dialog { padding: 28px 22px; }
   .account-dialog h2 { font-size: 26px; }
 }
+.account-dialog .account-admin {
+  display: block;
+  text-align: center;
+  padding: 13px;
+  margin-bottom: 14px;
+  border: 1px solid #855239;
+  border-radius: 8px;
+  background: #3a281e;
+  color: #ffb394;
+  text-decoration: none;
+  font-weight: 700;
+}
