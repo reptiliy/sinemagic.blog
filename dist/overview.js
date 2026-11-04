@@ -24,7 +24,7 @@ function money(amount,currency){return new Intl.NumberFormat('ru',{style:'curren
 function draw(){
  if(!report)return;
  const ready=report.billing==='ready',days=Number(byId('period').value);
- const payments=report.payments.filter(p=>p.time>=Date.now()-days*86400000);
+ const payments=report.payments.filter(p=>p.mode==='live'&&p.time>=Date.now()-days*86400000);
  const totals=new Map(),last=new Map();
  const chart=byId('paymentChart');chart.replaceChildren();
  if(ready){
@@ -51,22 +51,24 @@ function draw(){
  const peak=Math.max(1,...joined);
  byId('trendLine').setAttribute('points',joined.map((n,i)=>(3+294*i/(count-1))+','+(86-80*n/peak)).join(' '));
  byId('trendLabel').textContent='Регистраций за период: '+joined.reduce((sum,n)=>sum+n,0);
- byId('billingStatus').textContent=ready?(payments.length?'Оплаченные счета за выбранный период.':'За выбранный период оплат нет.'):report.billing==='off'?'Stripe ещё не подключён.':'Stripe временно недоступен.';
+ byId('billingStatus').textContent=payments.length?'Подтверждённые платежи за выбранный период.':'Подтверждённых платежей за выбранный период нет.';
  const emails=new Map(report.readers.map(u=>[u.id,u.email]));
  const transactions=byId('transactions');transactions.replaceChildren();
- for(const p of payments)row(transactions,[emails.get(p.uid)||p.uid,money(p.amount,p.currency),new Date(p.time).toLocaleString('ru')]);
+ for(const p of payments)row(transactions,[emails.get(p.uid)||p.uid,money(p.amount,p.currency)+' · '+p.method,new Date(p.time).toLocaleString('ru')]);
  const readers=byId('readers');readers.replaceChildren();
  const active=new Set(report.active);
  for(const u of report.readers){
-  if(!(u.email||u.id).toLowerCase().includes(byId('readerSearch').value.toLowerCase())||(byId('readerFilter').value==='paid'&&!active.has(u.id)))continue;
+  if(!((u.name||'')+' '+(u.email||u.id)).toLowerCase().includes(byId('readerSearch').value.toLowerCase())||(byId('readerFilter').value==='paid'&&!active.has(u.id)))continue;
   const p=last.get(u.id);
-  row(readers,[u.email||u.id,ready?(active.has(u.id)?'Подписка активна':'Без подписки'):'Статус оплаты недоступен',p?money(p.amount,p.currency)+' · '+new Date(p.time).toLocaleDateString('ru'):'—']);
+  row(readers,[(u.name?u.name+' · ':'')+(u.email||u.id),active.has(u.id)?'Подписка активна':'Нет активной подписки',p?money(p.amount,p.currency)+' · '+new Date(p.time).toLocaleDateString('ru'):'Оплат пока нет']);
+  const button=document.createElement('button');button.type='button';button.className='edit-reader';button.textContent='Имя и подписка';button.onclick=()=>editReader(u);readers.lastChild.append(button);
  }
  if(!readers.childElementCount)readers.textContent='Нет читателей по этому фильтру.';
+ if(typeof drawManagement==='function')drawManagement();
 }
 byId('period').onchange=draw;byId('readerSearch').oninput=draw;byId('readerFilter').onchange=draw;
 platformConfig.then(async config=>{
- byId('connections').textContent='Supabase · '+(config.connected?'настроен':'ожидает подключения')+'　 /　 Stripe Checkout · '+(config.billing?'настроен':'ожидает подключения');
+ byId('connections').textContent='Supabase · '+(config.connected?'настроен':'ожидает подключения')+'　 /　 Stripe · '+(config.providers?.stripe?'настроен':'ожидает подключения')+'　 /　 PayPal · '+(config.providers?.paypal?'настроен':'ожидает подключения');
  if(!sessionStorage.getItem(tokenKey)){byId('billingStatus').textContent=byId('readers').textContent='Войдите с аккаунтом администратора.';return}
  try{report=await journalApi('/api/admin/overview');draw()}catch(err){byId('billingStatus').textContent=byId('readers').textContent=err.message}
 });

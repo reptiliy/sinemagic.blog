@@ -1,11 +1,12 @@
 import {settings,branded} from './branding.mjs';
 import {platform} from './platform.mjs';
+import {billingConfiguration} from './billing.mjs';
 import { readFile } from 'node:fs/promises';
 
 const files=new Map(['index.html','styles.css','script.js','journal.css','journal.js','help.js','help.css'].map(name=>['/'+name,name]));
 const types={html:'text/html',css:'text/css',js:'text/javascript'};
-const billing=process.env.STRIPE_SECRET_KEY&&process.env.STRIPE_PRICE_USD&&process.env.STRIPE_PRICE_EUR&&process.env.SITE_URL;
-const instructions='Ты помощник SineMagic. Отвечай на языке читателя. Бесплатные статьи открываются в журнале и слайд-шоу. У тебя нет доступа к счетам и транзакциям. Не запрашивай платёжные реквизиты. '+(billing?'Оплата через Stripe. Нужно войти и выбрать тариф в USD или EUR в окне подписки.':'Приём платежей пока закрыт.');
+const billing=billingConfiguration().stripe||billingConfiguration().paypal;
+const instructions='Ты помощник SineMagic. Отвечай на языке читателя. Бесплатные статьи открываются в журнале и слайд-шоу. У тебя нет доступа к счетам и транзакциям. Не запрашивай платёжные реквизиты. '+(billing?'Доступные способы оплаты показаны в окне подписки. Нужно войти и выбрать тариф в USD или EUR.':'Приём платежей пока закрыт.');
 export async function handler(req,res){
   try{
     if(req.url==='/api/help'&&req.method==='POST'){
@@ -28,7 +29,7 @@ export async function handler(req,res){
     if(path==='/default-news.png'&&req.method==='GET'){res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=86400'}).end(await readFile(new URL('./dist/default-news.png',import.meta.url)));return}
     if(path==='/grok-watermark.png'&&req.method==='GET'){res.writeHead(200,{'Content-Type':'image/png'}).end(await readFile(new URL('./dist/grok-watermark.png',import.meta.url)));return}
     if(path.startsWith('/api/'))return platform(req,res,path);
-    const extra=['admin.html','admin.css','admin.js','account.js','account.css','catalog.js','overview.js','settings.js','samples.js','article.js','article.css','content.js','composer.js','library.js','subscription.js'];
+    const extra=['admin.html','admin.css','admin.js','account.js','account.css','catalog.js','overview.js','settings.js','samples.js','article.js','article.css','content.js','composer.js','library.js','subscription.js','management.js'];
     const file=/^\/articles\/[a-z0-9-]+\/?$/.test(path)?'article.html':path==='/admin'?'admin.html':path==='/'?'index.html':extra.includes(path.slice(1))?path.slice(1):files.get(path);
     if(!file||req.method!=='GET'){res.writeHead(404).end();return}
     const bytes=await readFile(new URL('./dist/'+file,import.meta.url));

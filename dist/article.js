@@ -44,7 +44,7 @@ async function readPage(){
   prose.textContent=error.message;
   if(error.status===401||error.status===403){
    prose.textContent='Эта статья доступна по подписке.';
-   const openSubscription=async()=>membershipWindow(headline.textContent,(await platformConfig).billing);
+   const openSubscription=async()=>membershipWindow(headline.textContent,(await platformConfig).billing,id);
    const button=document.createElement('button');button.className='cta';button.textContent='Оформить подписку →';button.onclick=openSubscription;prose.append(document.createElement('br'),button);
    await openSubscription();
   }

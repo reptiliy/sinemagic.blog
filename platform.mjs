@@ -1,5 +1,6 @@
 import {settings,validated,persist} from './branding.mjs';
 import {documentBody,checkDocument,prepareUpload,completeUpload,mediaLibrary,articleMediaRefs,withMedia} from './media.mjs';
+import {billingConfiguration,billingOverview,saveReaderName,hasBillingAccess,handleBillingWebhook,paypalPrices,paypalCheckout} from './billing.mjs';
 const env=process.env;
 const configured=()=>Boolean(env.SUPABASE_URL&&env.SUPABASE_SECRET_KEY&&env.SUPABASE_PUBLISHABLE_KEY);
 const currencies=['USD','EUR'];
@@ -31,24 +32,26 @@ function stripe(path,params,key){
  return remote('https://api.stripe.com/v1/'+path,params?{method:'POST',headers,body:new URLSearchParams(params)}:{headers});
 }
 async function subscription(user){
+ if(await hasBillingAccess(user.id))return true;
  if(!env.STRIPE_SECRET_KEY)return false;
  const search=new URLSearchParams({query:"status:'active' AND metadata['journal_user']:'"+user.id+"'",limit:'100'});
  const result=await stripe('subscriptions/search?'+search);
  for(const match of result.data){
   const live=await stripe('subscriptions/'+encodeURIComponent(match.id)+'?expand[]=latest_invoice');
-  if(live.metadata.journal_user===user.id&&live.status==='active'&&live.latest_invoice?.status==='paid'&&live.items.data.some(i=>currencies.some(c=>priceId(c)===i.price.id)))return true;
+  if(live.metadata.journal_user===user.id&&live.status==='active'&&live.latest_invoice?.status==='paid'&&live.items.data.some(i=>currencies.some(c=>priceId(c)===i.price.id)&&(i.current_period_end||live.current_period_end||0)*1000>Date.now()))return true;
  }
  return false;
 }
 async function route(req,path){
- if(path==='/api/config')return {connected:configured(),url:env.SUPABASE_URL,key:env.SUPABASE_PUBLISHABLE_KEY,billing:Boolean(env.STRIPE_SECRET_KEY&&env.SITE_URL&&currencies.every(priceId))};
+ if(path==='/api/config')return {connected:configured(),url:env.SUPABASE_URL,key:env.SUPABASE_PUBLISHABLE_KEY,billing:billingConfiguration().stripe||billingConfiguration().paypal,providers:billingConfiguration()};
  if(!configured())throw new Failure(503,'Подключите проект Supabase');
  if(path==='/api/prices'){
-  return Promise.all(currencies.map(async currency=>{
+  const prices=billingConfiguration().stripe?await Promise.all(currencies.map(async currency=>{
    const p=await stripe('prices/'+encodeURIComponent(priceId(currency)));
    if(!p.active||p.currency!==currency.toLowerCase()||p.recurring?.interval!=='month'||p.recurring.interval_count!==1||!Number.isInteger(p.unit_amount))throw new Failure(503,'Тариф ещё не настроен');
-   return {currency,amount:p.unit_amount/100};
-  }));
+   return {currency,amount:p.unit_amount/100,provider:'stripe'};
+  })):[];
+  return [...prices,...await paypalPrices()];
  }
  const cols='id,title,summary,category,paid,published,created_at,updated_at';
  if(path==='/api/articles'&&req.method==='GET'){
@@ -65,6 +68,11 @@ async function route(req,path){
   return withMedia(article.body);
  }
  const user=await identity(req);
+ if(path==='/api/admin/reader'&&req.method==='POST'){
+  if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
+  const {userId,name}=await payload(req);
+  try{return await saveReaderName(userId,name)}catch(error){throw new Failure(400,error.message)}
+ }
  if(path==='/api/account'&&req.method==='GET'){
   return {isAdmin:user.id===env.ADMIN_USER_ID};
  }
@@ -105,29 +113,8 @@ async function route(req,path){
    readers.push(...result.users.map(u=>({id:u.id,email:u.email,joined:u.created_at})));
    if(result.users.length<200)break;
   }
-  const payments=[],active=new Set();
-  async function scan(resource,visit){
-   let cursor='';
-   do{
-    const result=await stripe(resource+'&limit=100'+(cursor?'&starting_after='+encodeURIComponent(cursor):''));
-    result.data.forEach(visit);
-    cursor=result.has_more?result.data.at(-1).id:'';
-   }while(cursor);
-  }
-  let billing='off';
-  if(env.STRIPE_SECRET_KEY){
-   try{
-    await Promise.all([
-     scan('subscriptions?status=active',s=>{if(s.metadata?.journal_user&&s.items.data.some(i=>currencies.some(c=>priceId(c)===i.price.id)))active.add(s.metadata.journal_user)}),
-     scan('invoices?status=paid',i=>{
-      const uid=(i.parent?.subscription_details||i.subscription_details)?.metadata?.journal_user;
-      const time=i.status_transitions?.paid_at*1000;
-      if(uid&&i.amount_paid>0&&time>=Date.now()-30*86400000)payments.push({id:i.id,uid,time,amount:i.amount_paid,currency:i.currency.toUpperCase()});
-     })
-    ]);billing='ready';
-   }catch{billing='error'}
-  }
-  return {readers,billing,active:billing==='ready'?[...active]:[],payments:billing==='ready'?payments.sort((a,b)=>b.time-a.time):[]};
+  const data=await billingOverview();
+  return {...data,readers:readers.map(reader=>({...reader,name:data.profiles.find(profile=>profile.user_id===reader.id)?.display_name||''})),billing:'ready'};
  }
  if(path==='/api/admin'){
   if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
@@ -144,16 +131,25 @@ async function route(req,path){
   }
  }
  if(path==='/api/checkout'&&req.method==='POST'){
-  const {currency}=await payload(req);
-  if(!currencies.includes(currency)||!priceId(currency)||!env.STRIPE_SECRET_KEY||!env.SITE_URL)throw new Failure(503,'Оплата пока недоступна');
+  const {currency,articleId,provider='stripe'}=await payload(req);
+  if(articleId){
+   if(!/^[a-f0-9-]{36}$/.test(articleId))throw new Failure(400,'Неверная статья');
+   const rows=await db('id=eq.'+articleId+'&published=eq.true&paid=eq.true&select=id');
+   if(!rows.length)throw new Failure(404,'Платная статья не найдена');
+  }
   if(await subscription(user))throw new Failure(409,'Подписка уже действует');
+  if(provider==='paypal')return paypalCheckout(user,currency,articleId);
+  if(provider!=='stripe')throw new Failure(400,'Неизвестный способ оплаты');
+  if(!currencies.includes(currency)||!priceId(currency)||!env.STRIPE_SECRET_KEY||!env.SITE_URL)throw new Failure(503,'Оплата пока недоступна');
   const origin=new URL(env.SITE_URL).origin;
-  const session=await stripe('checkout/sessions',{mode:'subscription','line_items[0][price]':priceId(currency),'line_items[0][quantity]':'1','subscription_data[metadata][journal_user]':user.id,customer_email:user.email,success_url:origin+'/?payment=return',cancel_url:origin+'/'},'journal-'+user.id+'-'+currency+'-'+Math.floor(Date.now()/86400000));
+  const session=await stripe('checkout/sessions',{mode:'subscription','line_items[0][price]':priceId(currency),'line_items[0][quantity]':'1','subscription_data[metadata][journal_user]':user.id,'subscription_data[metadata][article_id]':articleId||'',customer_email:user.email,success_url:origin+'/?payment=return',cancel_url:origin+'/'},'journal-'+user.id+'-'+currency+'-'+(articleId||'journal')+'-'+Math.floor(Date.now()/86400000));
   return {url:session.url};
  }
  throw new Failure(404,'Не найдено');
 }
 export async function platform(req,res,path){
+ if(path==='/api/webhooks/stripe')return handleBillingWebhook(req,res,'stripe');
+ if(path==='/api/webhooks/paypal')return handleBillingWebhook(req,res,'paypal');
  try{const value=await route(req,path);res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'}).end(JSON.stringify(value))}
  catch(e){res.writeHead(e.status||503,{'Content-Type':'application/json','Cache-Control':'no-store'}).end(JSON.stringify({error:e instanceof Failure?e.message:'Сервис недоступен'}))}
 }
