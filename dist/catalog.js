@@ -1,13 +1,9 @@
 platformConfig.then(async config=>{
+ if(new URLSearchParams(location.search).get('subscribe')==='1')membershipWindow(null,config.billing);
  if(!config.connected)return;
  const element=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node};
  const subscribe=title=>membershipWindow(title,config.billing);
- async function open(row){
-  if(!row)return;
-  try{const result=await journalApi('/api/read/'+row.id);displayArticle({t:row.title,o:true,body:result.body});panel.lastChild.style.whiteSpace='pre-line';
-   if(row.id===grokId){const img=document.createElement('img');img.src='/grok-watermark.png';img.alt='Маркировка текста';img.style.width='100%';panel.insertBefore(img,panel.lastChild);const source=element('a','Документация Grok ↗');source.href='https://docs.x.ai/developers/advanced-api-usage/watermarking';source.style.color='var(--orange)';panel.append(source)}}
-  catch(err){if(row.paid)await subscribe(row.title);else show(err.message)}
- }
+ function open(row){if(row)location.assign('/articles/'+row.id)}
  let rows=[];
  const grokId='1a32f300-772e-4b93-b088-d87cff332168';
  const coverStyle='linear-gradient(0deg,#090c12df,transparent),url(/grok-watermark.png) center/cover';
@@ -21,7 +17,8 @@ platformConfig.then(async config=>{
    const card=element('article','');card.className='card'+(row.paid?' locked':'');
    const cover=element('div','');cover.className='cover';
    if(row.id===grokId)cover.style.background=coverStyle;
-   const b=element('button',row.paid?'Открыть по подписке →':'Читать статью →');b.className='link';b.onclick=()=>open(row);
+   const b=element('a',row.paid?'Открыть по подписке →':'Читать статью →');b.className='link';b.href='/articles/'+row.id;
+   if(row.paid&&!sessionStorage.getItem(tokenKey))b.onclick=e=>{e.preventDefault();subscribe(row.title)};
    card.append(cover,element('span',row.category==='practice'?'Практика':'Разбор'),element('h3',row.title),element('p',row.summary),b);grid.append(card);
   }
  };

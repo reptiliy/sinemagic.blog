@@ -1,14 +1,8 @@
-// Открытые публикации имеют o:1. Закрытые тексты на клиент не отправляем.
-data[0].body='Когда музыка обрывается, зритель начинает слушать комнату. Шорох одежды и вдох перед репликой вдруг сообщают больше, чем сама реплика. Попробуйте задержать склейку на один вдох: смысл сместится со сказанных слов на человека, который их услышал.';
-data.push({t:'Что рассказывает тень за окном',k:'practice',l:'Практика',d:'18 ОКТЯБРЯ 2026',p:'Небольшой этюд о свете из одного окна.',o:1,body:'Поставьте чашку на стол у окна. В полдень короткая тень почти сливается с донышком; к вечеру она пересекает стол как стрелка. Снимите оба кадра с одной точки. Без часов и пояснений зритель почувствует, что прошло время.'});
 const hero=document.querySelector('.visual'), modal=document.querySelector('#reader'),panel=document.querySelector('#panel');
 const free=data.filter(x=>x.o);let slide=0,paused=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function displayArticle(x){
  if(!x?.o)return membershipWindow(x?.t);
- panel.innerHTML='<div class="eyebrow">Свободное чтение</div><h3 id="dialogTitle"></h3><p></p>';
- panel.querySelector('h3').textContent=x.t;
- panel.lastChild.textContent=x.body;
- modal.showModal();
+ location.assign('/articles/'+encodeURIComponent(x.id));
 }
 async function membershipWindow(title, billing=false){
  panel.innerHTML='<section class="pass"><div class="eyebrow">✦　SineMagic Journal</div><h3 id="dialogTitle">Подписка читателя</h3><p class="intro"></p><div class="pass-plan"><small>ЕЖЕМЕСЯЧНЫЙ ДОСТУП</small><div class="currency" aria-label="Валюта тарифа"></div><div class="rate" aria-live="polite"></div><ul><li>Все статьи по подписке</li><li>Полный архив журнала</li></ul></div><p class="terms" role="status"></p><button class="join" disabled></button><button class="assist">Помощь с подпиской</button></section>';

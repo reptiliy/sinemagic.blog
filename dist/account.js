@@ -4,7 +4,7 @@ async function journalApi(path,method='GET',body){
  const token=sessionStorage.getItem(tokenKey);
  const result=await fetch(path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:body&&JSON.stringify(body)});
  const value=await result.json();
- if(!result.ok){if(result.status===401)sessionStorage.removeItem(tokenKey);throw new Error(value.error)}
+ if(!result.ok){if(result.status===401)sessionStorage.removeItem(tokenKey);throw Object.assign(new Error(value.error),{status:result.status})}
  return value;
 }
 function account(){
