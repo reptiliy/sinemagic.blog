@@ -78,7 +78,7 @@
   font: 19px/1.75 Georgia, serif;
 }
 .reading img { max-width: 100%; border-radius: 12px; }
-.reading footer { padding: 22px 0; }
+.reading-return { padding: 22px 0; }
 .reading button { cursor: pointer; }
 @media (max-width: 540px) {
   main.reading { padding: 22px 14px 44px; }
