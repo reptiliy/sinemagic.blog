@@ -1,2 +1,2 @@
-import {handler} from '../server.mjs';
+import {handler} from '../journal-handler.mjs';
 export default handler;
