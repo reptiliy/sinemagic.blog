@@ -1,4 +1,5 @@
 import {settings,validated,persist} from './branding.mjs';
+import {documentBody,checkDocument,prepareUpload,withMedia} from './media.mjs';
 const env=process.env;
 const configured=()=>Boolean(env.SUPABASE_URL&&env.SUPABASE_SECRET_KEY&&env.SUPABASE_PUBLISHABLE_KEY);
 const currencies=['USD','EUR'];
@@ -50,14 +51,30 @@ async function route(req,path){
   }));
  }
  const cols='id,title,summary,category,paid,published,created_at';
- if(path==='/api/articles'&&req.method==='GET')return db('published=eq.true&order=created_at.desc&select='+cols);
+ if(path==='/api/articles'&&req.method==='GET'){
+  const rows=await db('published=eq.true&order=created_at.desc&select='+cols+',body');
+  return rows.map(({body,...row})=>{
+   const doc=documentBody(body);
+   return {...row,cover:doc?.cover||'',coverPosition:doc?.coverPosition||'center'};
+  });
+ }
  if(/^\/api\/read\/[a-f0-9-]{36}$/.test(path)&&req.method==='GET'){
   const [article]=await db('id=eq.'+path.split('/').pop()+'&published=eq.true&select=body,paid');
   if(!article)throw new Failure(404,'Статья недоступна');
   if(article.paid){const u=await identity(req);if(u.id!==env.ADMIN_USER_ID&&!await subscription(u))throw new Failure(403,'Требуется подписка')}
-  return {body:article.body};
+  return withMedia(article.body);
  }
  const user=await identity(req);
+ if(path==='/api/admin/media'&&req.method==='POST'){
+  if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
+  try{return await prepareUpload(await payload(req))}catch(error){throw new Failure(400,error.message)}
+ }
+ if(/^\/api\/admin\/preview\/[a-f0-9-]{36}$/.test(path)&&req.method==='GET'){
+  if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
+  const [row]=await db('id=eq.'+path.split('/').pop()+'&select=body');
+  if(!row)throw new Failure(404,'Материал не найден');
+  return withMedia(row.body);
+ }
  if(path==='/api/admin/settings'){
   if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
   if(req.method==='GET')return settings();
@@ -106,6 +123,7 @@ async function route(req,path){
    const input=await payload(req);
    const {title,body,summary,category,paid,published,id}=input;
    if(typeof title!=='string'||!title.trim()||title.length>200||typeof body!=='string'||!body.trim()||typeof summary!=='string'||!['practice','analysis'].includes(category)||typeof paid!=='boolean'||typeof published!=='boolean'||(id&&!/^[a-f0-9-]{36}$/.test(id)))throw new Failure(400,'Проверьте поля материала');
+   try{checkDocument(body)}catch(error){throw new Failure(400,error.message)}
    const [row]=await db(id?'id=eq.'+id:'',{method:id?'PATCH':'POST',body:JSON.stringify({title,body,summary,category,paid,published})});
    if(!row)throw new Failure(404,'Материал не найден');return row;
   }

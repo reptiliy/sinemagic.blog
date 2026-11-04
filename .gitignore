@@ -2,5 +2,6 @@
 .env.*
 !.env.example
 .vercel/
+node_modules/
 site-settings*.tmp
 site-settings.json

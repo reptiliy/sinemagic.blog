@@ -20,5 +20,19 @@
 <section id="posts" hidden>
 <div class="metrics"><div>Материалы<strong id="total">—</strong></div><div>Опубликовано<strong id="live">—</strong></div><div>Черновики<strong id="drafts">—</strong></div></div>
 <div class="desk"><aside><h3>Библиотека</h3><button id="create">+ Новый материал</button><div id="library"></div></aside>
-<form id="editor"><p class="eyebrow">Работа над текстом</p><h2>Материал</h2><fieldset disabled><label>Заголовок<input name="title" required maxlength="200"></label><label>Анонс<textarea name="summary" rows="2"></textarea></label><label>Полный текст<textarea name="body" rows="10" required></textarea></label><label>Рубрика<select name="category"><option value="analysis">Разбор</option><option value="practice">Практика</option></select></label><label><input type="checkbox" name="paid"> Только по подписке</label><label><input type="checkbox" name="published"> Опубликовать в журнале</label><button class="cta">Сохранить материал</button></fieldset></form></div></section></main>
-<script src="account.js"></script><script src="admin.js"></script><script src="overview.js"></script><script src="settings.js"></script></body></html>
+<form id="editor"><p class="eyebrow">Работа над текстом</p><h2>Материал</h2><fieldset disabled>
+<label>Заголовок<input name="title" required maxlength="200"></label>
+<label>Краткая новость / анонс<textarea name="summary" rows="3"></textarea></label>
+<div class="cover-controls"><label>Обложка новости<input id="coverFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label><img id="coverPreview" alt="Обложка статьи" hidden><button type="button" id="clearCover">Убрать обложку</button>
+<label>Расположение обложки<select name="coverPosition"><option value="center">По центру</option><option value="side">Сбоку от анонса</option></select></label></div>
+<label>Полный текст статьи</label>
+<div class="editor-toolbar" role="toolbar" aria-label="Форматирование текста">
+<button type="button" data-command="bold" aria-label="Жирный"><b>Ж</b></button><button type="button" data-command="italic" aria-label="Курсив"><i>К</i></button>
+<button type="button" data-command="formatBlock" data-value="h2">Заголовок</button><button type="button" data-command="formatBlock" data-value="p">Абзац</button>
+<button type="button" data-command="insertUnorderedList">Список</button><button type="button" data-command="formatBlock" data-value="blockquote">Цитата</button></div>
+<div id="composer"></div><div class="editor-actions"><button type="button" id="textBlock">+ Текст</button><label class="upload-action">+ Картинка / видео<input id="inlineFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"></label></div>
+<p id="mediaStatus" role="status">Изображения и видео до 50 МБ. Загруженные файлы добавятся после сохранения статьи.</p>
+<label>Рубрика<select name="category"><option value="analysis">Разбор</option><option value="practice">Практика</option></select></label>
+<label><input type="checkbox" name="paid"> Только по подписке</label><label><input type="checkbox" name="published"> Опубликовать в журнале</label><button class="cta">Сохранить материал</button>
+</fieldset></form></div></section></main>
+<script src="account.js"></script><script src="content.js"></script><script src="admin.js"></script><script src="composer.js"></script><script src="overview.js"></script><script src="settings.js"></script></body></html>

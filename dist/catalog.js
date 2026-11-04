@@ -8,7 +8,11 @@ platformConfig.then(async config=>{
  const grokId='1a32f300-772e-4b93-b088-d87cff332168';
  const coverStyle='linear-gradient(0deg,#090c12df,transparent),url(/grok-watermark.png) center/cover';
  const originalPaint=paint;
- paint=()=>{originalPaint();hero.style.background=free[slide]?.id===grokId?coverStyle:''};
+ paint=()=>{
+  originalPaint();
+  const row=free[slide];
+  hero.style.background=row?.cover?'linear-gradient(0deg,#090c12ef,transparent),url('+JSON.stringify(row.cover)+') center/cover':row?.id===grokId?coverStyle:'';
+ };
  render=function(){
   const q=document.querySelector('#search').value.trim().toLowerCase();
   const listed=rows.filter(r=>(filter==='all'||filter===r.category)&&(r.title+' '+r.summary).toLowerCase().includes(q));
@@ -16,7 +20,12 @@ platformConfig.then(async config=>{
   for(const row of listed){
    const card=element('article','');card.className='card'+(row.paid?' locked':'');
    const cover=element('div','');cover.className='cover';
-   if(row.id===grokId)cover.style.background=coverStyle;
+   const coverUrl=row.cover||(row.id===grokId?'/grok-watermark.png':'');
+   if(coverUrl){
+    const image=element('img','');image.src=coverUrl;image.alt=row.title;image.loading='lazy';cover.append(image);
+    cover.classList.add('has-image');
+    if(row.coverPosition==='side')card.classList.add('side-cover');
+   }
    const b=element('a',row.paid?'Открыть по подписке →':'Читать статью →');b.className='link';b.href='/articles/'+row.id;
    if(row.paid&&!sessionStorage.getItem(tokenKey))b.onclick=e=>{e.preventDefault();subscribe(row.title)};
    card.append(cover,element('span',row.category==='practice'?'Практика':'Разбор'),element('h3',row.title),element('p',row.summary),b);grid.append(card);

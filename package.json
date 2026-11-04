@@ -1,1 +1,1 @@
-{"name":"sinemagic-blog","private":true,"type":"module","engines":{"node":"24.x"}}
+{"name":"sinemagic-blog","private":true,"type":"module","engines":{"node":"24.x"},"dependencies":{"@supabase/supabase-js":"2.119.0"}}
