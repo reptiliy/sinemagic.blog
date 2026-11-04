@@ -1,6 +1,7 @@
 import {settings,validated,persist} from './branding.mjs';
 import {documentBody,checkDocument,prepareUpload,completeUpload,mediaLibrary,articleMediaRefs,withMedia} from './media.mjs';
 import {billingConfiguration,billingOverview,saveReaderName,hasBillingAccess,handleBillingWebhook,paypalPrices,paypalCheckout} from './billing.mjs';
+import {exchangeQuote,quoteCents} from './exchange.mjs';
 const env=process.env;
 const configured=()=>Boolean(env.SUPABASE_URL&&env.SUPABASE_SECRET_KEY&&env.SUPABASE_PUBLISHABLE_KEY);
 const currencies=['USD','EUR'];
@@ -43,6 +44,7 @@ async function subscription(user){
  return false;
 }
 async function route(req,path){
+ if(path==='/api/exchange'&&req.method==='GET')return exchangeQuote();
  if(path==='/api/config')return {connected:configured(),url:env.SUPABASE_URL,key:env.SUPABASE_PUBLISHABLE_KEY,billing:billingConfiguration().stripe||billingConfiguration().paypal,providers:billingConfiguration()};
  if(!configured())throw new Failure(503,'Подключите проект Supabase');
  if(path==='/api/prices'){
@@ -141,6 +143,8 @@ async function route(req,path){
   if(provider==='paypal')return paypalCheckout(user,currency,articleId);
   if(provider!=='stripe')throw new Failure(400,'Неизвестный способ оплаты');
   if(!currencies.includes(currency)||!priceId(currency)||!env.STRIPE_SECRET_KEY||!env.SITE_URL)throw new Failure(503,'Оплата пока недоступна');
+  const tariff=await stripe('prices/'+encodeURIComponent(priceId(currency)));
+  if(tariff.unit_amount!==quoteCents(await exchangeQuote(),currency))throw new Failure(503,'Тариф оплаты ещё не согласован с текущей ценой.');
   const origin=new URL(env.SITE_URL).origin;
   const session=await stripe('checkout/sessions',{mode:'subscription','line_items[0][price]':priceId(currency),'line_items[0][quantity]':'1','subscription_data[metadata][journal_user]':user.id,'subscription_data[metadata][article_id]':articleId||'',customer_email:user.email,success_url:origin+'/?payment=return',cancel_url:origin+'/'},'journal-'+user.id+'-'+currency+'-'+(articleId||'journal')+'-'+Math.floor(Date.now()/86400000));
   return {url:session.url};

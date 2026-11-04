@@ -1,6 +1,7 @@
 import {createClient} from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import {randomUUID} from 'node:crypto';
+import {exchangeQuote,quoteCents} from './exchange.mjs';
 
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const env=process.env;
@@ -41,7 +42,8 @@ export async function paypalPrices(){
 }
 export async function paypalCheckout(user,currency,articleId){
  if(!billingConfiguration().paypal||!['USD','EUR'].includes(currency))throw Error('PayPal пока не подключён');
- await paypalPrices();
+ const prices=await paypalPrices();
+ if(Math.round(prices.find(price=>price.currency===currency).amount*100)!==quoteCents(await exchangeQuote(),currency))throw Error('Тариф PayPal ещё не согласован с текущей ценой.');
  const result=await paypal('/v1/billing/subscriptions','POST',{
   plan_id:env['PAYPAL_PLAN_'+currency],
   custom_id:user.id+(articleId?':'+articleId:''),

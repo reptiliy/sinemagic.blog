@@ -8,8 +8,16 @@ async function membershipWindow(title, billing=false, articleId){
  if(!modal.open)modal.showModal();
  const configuration=await platformConfig;
  try{
-  const prices=billing?await journalApi('/api/prices'):[{currency:'EUR',amount:5},{currency:'USD',amount:5}];
-  if(!prices.length)throw Error('Тариф пока недоступен.');
+  const quote=await journalApi('/api/exchange');
+  const reference=[{currency:'EUR',amount:quote.eurCents/100},{currency:'USD',amount:quote.baseUsdCents/100}];
+  const prices=billing?await journalApi('/api/prices'):[];
+  const rateNote=document.createElement('p');rateNote.className='exchange-note';
+  const source=document.createElement('a');
+  source.href='https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html';
+  source.target='_blank';source.rel='noopener noreferrer';source.textContent='Курс ЕЦБ';
+  const date=new Intl.DateTimeFormat('ru',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(quote.date+'T00:00:00Z'));
+  rateNote.append('Базовая цена — 5 USD. ',source,' на '+date+': 1 EUR = '+quote.usdPerEur+' USD. Справочный пересчёт.');
+  box.querySelector('.rate').after(rateNote);
   let selected;
   const provider=document.createElement('select');
   provider.className='payment-provider';provider.setAttribute('aria-label','Способ оплаты');
@@ -20,20 +28,21 @@ async function membershipWindow(title, billing=false, articleId){
   box.querySelector('.currency').before(provider);
   function paymentTerms(){
    const name=provider.value==='paypal'?'PayPal':'Stripe';
-   terms.textContent=selected.available?'Ежемесячная подписка с автопродлением. Оплата через '+name+'.':'Предварительная цена. '+name+' пока не подключён.';
+   terms.textContent=selected.available?'Ежемесячная подписка с автопродлением. Цена фиксируется при оформлении. Оплата через '+name+'.':configuration.providers?.[provider.value]?'Тариф выбранного сервиса обновляется. Оплата временно недоступна.':'Предварительная цена. '+name+' пока не подключён.';
    join.disabled=!selected.available;
    join.textContent=selected.available?(sessionStorage.getItem(tokenKey)?'Оформить подписку →':'Войти и оформить подписку →'):'Оформление скоро откроется';
   }
   function select(price){
    const actual=prices.find(item=>item.currency===price.currency&&item.provider===provider.value);
-   selected={...(actual||{currency:price.currency,amount:5,provider:provider.value}),available:Boolean(actual&&configuration.providers?.[provider.value])};
-   box.querySelector('.rate').textContent=new Intl.NumberFormat('ru',{style:'currency',currency:selected.currency,maximumFractionDigits:2,minimumFractionDigits:0}).format(selected.amount)+' / месяц';
+   const converted=reference.find(item=>item.currency===price.currency);
+   selected={...converted,provider:provider.value,available:Boolean(actual&&configuration.providers?.[provider.value]&&Math.round(actual.amount*100)===Math.round(converted.amount*100))};
+   box.querySelector('.rate').textContent=new Intl.NumberFormat('ru',{style:'currency',currency:selected.currency,maximumFractionDigits:2,minimumFractionDigits:2}).format(selected.amount)+' / месяц';
    for(const b of box.querySelectorAll('.currency button'))b.setAttribute('aria-pressed',String(b.textContent===selected.currency));
    paymentTerms();
   }
-  for(const currency of new Set(prices.map(price=>price.currency))){const b=document.createElement('button');b.textContent=currency;b.onclick=()=>select({currency});box.querySelector('.currency').append(b)}
+  for(const currency of ['EUR','USD']){const b=document.createElement('button');b.textContent=currency;b.onclick=()=>select({currency});box.querySelector('.currency').append(b)}
   provider.onchange=()=>select(selected);
-  select(prices.find(p=>p.currency==='EUR')||prices[0]);
+  select({currency:'EUR'});
   if(billing){
    join.onclick=async()=>{if(!selected.available)return;if(!sessionStorage.getItem(tokenKey)){modal.close();account();return}join.disabled=true;try{const session=await journalApi('/api/checkout','POST',{currency:selected.currency,provider:selected.provider,articleId});location.assign(session.url)}catch(err){terms.textContent=err.message;join.disabled=false}};
   }
