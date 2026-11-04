@@ -74,4 +74,3 @@
   #grid .card .article-action { transition: none; transform: none; }
 }
 .payment-provider{display:block;width:100%;margin:14px 0;padding:10px 12px;border:1px solid #76503e;background:#1a1815;color:var(--fg);border-radius:7px;font:600 13px Manrope,Arial}
-.pass .paypal-pending{display:block;width:100%;padding:13px;margin-top:10px;border:1px solid #675a43;border-radius:9px;background:#343027;color:#e7d8b7;font:700 14px Manrope,Arial;cursor:not-allowed}

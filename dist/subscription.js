@@ -7,30 +7,26 @@ async function membershipWindow(title, billing=false, articleId){
  join.textContent=billing?'Загружаем тариф…':'Оформление скоро откроется';
  if(!modal.open)modal.showModal();
  const configuration=await platformConfig;
- if(!configuration.providers?.paypal){
-  const paypalButton=document.createElement('button');
-  paypalButton.type='button';
-  paypalButton.className='paypal-pending';
-  paypalButton.textContent='PayPal — пока не подключён';
-  paypalButton.disabled=true;
-  join.after(paypalButton);
- }
  try{
   const prices=billing?await journalApi('/api/prices'):[{currency:'EUR',amount:5},{currency:'USD',amount:5}];
   if(!prices.length)throw Error('Тариф пока недоступен.');
   let selected;
   const provider=document.createElement('select');
-  provider.hidden=!billing;
   provider.className='payment-provider';provider.setAttribute('aria-label','Способ оплаты');
-  for(const name of new Set(prices.map(price=>price.provider||'stripe'))){
+  for(const name of ['stripe','paypal']){
    const option=document.createElement('option');option.value=name;option.textContent=name==='paypal'?'PayPal':'Карта · Stripe';provider.append(option);
   }
+  provider.value=prices.find(price=>price.provider)?.provider||'stripe';
   box.querySelector('.currency').before(provider);
   function paymentTerms(){
-   terms.textContent=billing?'Ежемесячная подписка с автопродлением. Оплата через '+(selected.provider==='paypal'?'PayPal':'Stripe')+'.':'Предварительная цена. Приём платежей пока закрыт.';
+   const name=provider.value==='paypal'?'PayPal':'Stripe';
+   terms.textContent=selected.available?'Ежемесячная подписка с автопродлением. Оплата через '+name+'.':'Предварительная цена. '+name+' пока не подключён.';
+   join.disabled=!selected.available;
+   join.textContent=selected.available?(sessionStorage.getItem(tokenKey)?'Оформить подписку →':'Войти и оформить подписку →'):'Оформление скоро откроется';
   }
   function select(price){
-   selected=prices.find(item=>item.currency===price.currency&&(item.provider||'stripe')===provider.value)||prices.find(item=>(item.provider||'stripe')===provider.value);
+   const actual=prices.find(item=>item.currency===price.currency&&item.provider===provider.value);
+   selected={...(actual||{currency:price.currency,amount:5,provider:provider.value}),available:Boolean(actual&&configuration.providers?.[provider.value])};
    box.querySelector('.rate').textContent=new Intl.NumberFormat('ru',{style:'currency',currency:selected.currency,maximumFractionDigits:2,minimumFractionDigits:0}).format(selected.amount)+' / месяц';
    for(const b of box.querySelectorAll('.currency button'))b.setAttribute('aria-pressed',String(b.textContent===selected.currency));
    paymentTerms();
@@ -39,8 +35,7 @@ async function membershipWindow(title, billing=false, articleId){
   provider.onchange=()=>select(selected);
   select(prices.find(p=>p.currency==='EUR')||prices[0]);
   if(billing){
-   join.disabled=false;join.textContent=sessionStorage.getItem(tokenKey)?'Оформить подписку →':'Войти и оформить подписку →';
-   join.onclick=async()=>{if(!sessionStorage.getItem(tokenKey)){modal.close();account();return}join.disabled=true;try{const session=await journalApi('/api/checkout','POST',{currency:selected.currency,provider:selected.provider||'stripe',articleId});location.assign(session.url)}catch(err){terms.textContent=err.message;join.disabled=false}};
+   join.onclick=async()=>{if(!selected.available)return;if(!sessionStorage.getItem(tokenKey)){modal.close();account();return}join.disabled=true;try{const session=await journalApi('/api/checkout','POST',{currency:selected.currency,provider:selected.provider,articleId});location.assign(session.url)}catch(err){terms.textContent=err.message;join.disabled=false}};
   }
  }catch(err){terms.textContent=err.message;join.textContent='Тариф недоступен'}
 }
