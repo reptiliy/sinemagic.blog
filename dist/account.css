@@ -1,0 +1,55 @@
+dialog.account-dialog {
+  box-sizing: border-box;
+  position: fixed;
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 36px;
+  overflow-y: auto;
+  color: #e9e6df;
+  background: radial-gradient(ellipse at top right, #49302355, transparent 65%), #1e1d1a;
+  border: 1px solid #51463a;
+  border-radius: 20px;
+  box-shadow: 0 30px 100px #0009;
+  font: 14px/1.5 Manrope, Arial, sans-serif;
+}
+dialog.account-dialog::backdrop { background: #080807b8; backdrop-filter: blur(8px); }
+.account-dialog .account-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #50483e;
+  border-radius: 50%;
+  color: #bbb2a5;
+  background: transparent;
+  font: 23px Arial;
+  cursor: pointer;
+}
+.account-symbol { font-size: 32px; color: var(--orange, #ff5c2e); }
+.account-dialog .account-kicker { color: #c28f6e; font: 10px monospace; letter-spacing: .12em; margin: 14px 0 10px; }
+.account-dialog h2 { font: 700 29px/1.2 Manrope, Arial, sans-serif; letter-spacing: -.04em; margin: 0 0 12px; }
+.account-dialog .account-intro { color: #a9a295; font-size: 13px; margin: 0 0 22px; }
+.account-dialog .account-tabs { display: flex; padding: 4px; gap: 4px; margin-bottom: 22px; background: #141412; border: 1px solid #39362e; border-radius: 9px; }
+.account-dialog .account-tabs button { flex: 1; background: transparent; border: 0; border-radius: 6px; color: #a69e92; padding: 9px; cursor: pointer; font: 600 13px Manrope, Arial; }
+.account-dialog .account-tabs button[aria-pressed=true] { color: #f2dfd2; background: #403025; }
+.account-dialog .account-form { display: flex; flex-direction: column; float: none; width: 100%; margin: 0; }
+.account-dialog .account-form label { display: block; margin: 0 0 7px; font: 600 12px Manrope, Arial; color: #d2c8bb; }
+.account-dialog .account-form input { box-sizing: border-box; display: block; width: 100%; min-width: 0; height: 48px; margin: 0 0 18px; padding: 12px 14px; border: 1px solid #514a40; border-radius: 8px; background: #141412; color: #f3eee5; font: 15px Manrope, Arial; text-transform: none; letter-spacing: normal; outline: none; }
+.account-dialog .account-form input:focus { border-color: #ff815b; box-shadow: 0 0 0 3px #ff5c2e1c; }
+.account-dialog .account-form input::placeholder { color: #776f63; }
+.account-dialog .account-submit { width: 100%; padding: 14px; border: 0; border-radius: 8px; background: var(--orange, #ff5c2e); color: #1a110d; font: 800 14px Manrope, Arial; cursor: pointer; }
+.account-dialog .account-submit:hover { background: #ff7954; }
+.account-dialog .account-submit:disabled { cursor: wait; opacity: .65; }
+.account-dialog .account-status { color: #ffb48f; font-size: 12px; line-height: 1.5; margin: 0 0 14px; }
+.account-dialog .account-status:empty { display: none; }
+.account-dialog .account-note { text-align: center; color: #91897b; font-size: 11px; margin: 18px 0 0; }
+.account-dialog button:focus-visible { outline: 2px solid #ffb193; outline-offset: 3px; }
+@media (max-width: 480px) {
+  dialog.account-dialog { padding: 28px 22px; }
+  .account-dialog h2 { font-size: 26px; }
+}
