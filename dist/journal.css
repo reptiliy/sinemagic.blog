@@ -51,7 +51,8 @@
 }
 #grid .article-action::after { content: '↗'; font-size: 18px; }
 #grid .card .article-action-paid {
-  color: #20110a;
+  color: #fff;
+  font-weight: 800;
   background: #ff5c2e;
   border-color: #ff5c2e;
 }
