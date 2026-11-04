@@ -75,7 +75,7 @@ async function uploadFile(file,kind){
  editor.querySelector('fieldset').disabled=true;
  mediaStatus.textContent='Подготовка загрузки…';
  try{
-  const data=await journalApi('/api/admin/media','POST',{kind,type:file.type,size:file.size});
+  const data=await journalApi('/api/admin/media','POST',{kind,type:file.type,size:file.size,name:file.name});
   await new Promise((resolve,reject)=>{
    const xhr=new XMLHttpRequest();xhr.open('PUT',data.uploadUrl);xhr.timeout=180000;
    xhr.setRequestHeader('Content-Type',file.type);
@@ -84,6 +84,7 @@ async function uploadFile(file,kind){
    xhr.onerror=xhr.ontimeout=()=>reject(Error('Не удалось загрузить файл. Попробуйте ещё раз.'));
    xhr.send(file);
   });
+  await journalApi('/api/admin/media/complete','POST',{id:data.id});
   if(kind==='cover')setCover(data.url);
   else{
    const url=URL.createObjectURL(file);

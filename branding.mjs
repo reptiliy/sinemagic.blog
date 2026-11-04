@@ -1,8 +1,13 @@
-import {readFile,writeFile,rename} from 'node:fs/promises';
-import {randomUUID} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
+import {createClient} from '@supabase/supabase-js';
 const location=new URL('./site-settings.json',import.meta.url);
 export const defaults={name:'SineMagic',description:'Идеи, разборы и истории создания фильмов — для тех, кто видит в кадре больше, чем просто сюжет.',keywords:'кино, режиссура, киноязык',logo:'',favicon:''};
 export async function settings(){
+ if(process.env.SUPABASE_URL&&process.env.SUPABASE_SECRET_KEY){
+  const result=await createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SECRET_KEY,{auth:{persistSession:false}}).from('journal_settings').select('value').eq('id',true).maybeSingle();
+  if(result.error)throw Error('Настройки сайта недоступны');
+  if(result.data)return result.data.value;
+ }
  try{return JSON.parse(await readFile(location,'utf8'))}catch(error){if(error.code==='ENOENT')return defaults;throw error}
 }
 export function validated(input){
@@ -20,8 +25,8 @@ export function validated(input){
  return result;
 }
 export async function persist(settings){
- const tmp=new URL('./site-settings.'+randomUUID()+'.tmp',location);
- await writeFile(tmp,JSON.stringify(settings),'utf8');await rename(tmp,location);
+ const result=await createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SECRET_KEY,{auth:{persistSession:false}}).from('journal_settings').upsert({id:true,value:settings,updated_at:new Date().toISOString()}).select('value').single();
+ if(result.error)throw Error('Не удалось сохранить настройки');
 }
 const escape=value=>value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 export function branded(html,s,admin){

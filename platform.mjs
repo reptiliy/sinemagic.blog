@@ -1,5 +1,5 @@
 import {settings,validated,persist} from './branding.mjs';
-import {documentBody,checkDocument,prepareUpload,withMedia} from './media.mjs';
+import {documentBody,checkDocument,prepareUpload,completeUpload,mediaLibrary,articleMediaRefs,withMedia} from './media.mjs';
 const env=process.env;
 const configured=()=>Boolean(env.SUPABASE_URL&&env.SUPABASE_SECRET_KEY&&env.SUPABASE_PUBLISHABLE_KEY);
 const currencies=['USD','EUR'];
@@ -50,7 +50,7 @@ async function route(req,path){
    return {currency,amount:p.unit_amount/100};
   }));
  }
- const cols='id,title,summary,category,paid,published,created_at';
+ const cols='id,title,summary,category,paid,published,created_at,updated_at';
  if(path==='/api/articles'&&req.method==='GET'){
   const rows=await db('published=eq.true&order=created_at.desc&select='+cols+',body');
   return rows.map(({body,...row})=>{
@@ -65,9 +65,19 @@ async function route(req,path){
   return withMedia(article.body);
  }
  const user=await identity(req);
+ if(path==='/api/admin/library'&&req.method==='GET'){
+  if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
+  const page=Number(new URL(req.url,'http://localhost').searchParams.get('page')||0);
+  if(!Number.isInteger(page)||page<0)throw new Failure(400,'Неверная страница');
+  return mediaLibrary(page);
+ }
+ if(path==='/api/admin/media/complete'&&req.method==='POST'){
+  if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
+  try{return await completeUpload((await payload(req)).id)}catch(error){throw new Failure(400,error.message)}
+ }
  if(path==='/api/admin/media'&&req.method==='POST'){
   if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
-  try{return await prepareUpload(await payload(req))}catch(error){throw new Failure(400,error.message)}
+  try{return await prepareUpload(await payload(req),user.id)}catch(error){throw new Failure(400,error.message)}
  }
  if(/^\/api\/admin\/preview\/[a-f0-9-]{36}$/.test(path)&&req.method==='GET'){
   if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
@@ -124,7 +134,9 @@ async function route(req,path){
    const {title,body,summary,category,paid,published,id}=input;
    if(typeof title!=='string'||!title.trim()||title.length>200||typeof body!=='string'||!body.trim()||typeof summary!=='string'||!['practice','analysis'].includes(category)||typeof paid!=='boolean'||typeof published!=='boolean'||(id&&!/^[a-f0-9-]{36}$/.test(id)))throw new Failure(400,'Проверьте поля материала');
    try{checkDocument(body)}catch(error){throw new Failure(400,error.message)}
-   const [row]=await db(id?'id=eq.'+id:'',{method:id?'PATCH':'POST',body:JSON.stringify({title,body,summary,category,paid,published})});
+   let refs;
+   try{refs=await articleMediaRefs(body)}catch(error){throw new Failure(400,error.message)}
+   const [row]=await remote(env.SUPABASE_URL+'/rest/v1/rpc/journal_save_article',{method:'POST',headers:{apikey:env.SUPABASE_SECRET_KEY,'Content-Type':'application/json'},body:JSON.stringify({article:{id:id||null,title,body,summary,category,paid,published},media_refs:refs,editor_id:user.id})});
    if(!row)throw new Failure(404,'Материал не найден');return row;
   }
  }

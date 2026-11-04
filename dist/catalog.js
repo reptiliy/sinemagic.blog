@@ -6,12 +6,12 @@ platformConfig.then(async config=>{
  function open(row){if(row)location.assign('/articles/'+row.id)}
  let rows=[];
  const grokId='1a32f300-772e-4b93-b088-d87cff332168';
- const coverStyle='linear-gradient(0deg,#090c12df,transparent),url(/grok-watermark.png) center/cover';
  const originalPaint=paint;
  paint=()=>{
   originalPaint();
   const row=free[slide];
-  hero.style.background=row?.cover?'linear-gradient(0deg,#090c12ef,transparent),url('+JSON.stringify(row.cover)+') center/cover':row?.id===grokId?coverStyle:'';
+  const source=row?.cover||(row?.id===grokId?'/grok-watermark.png':'/default-news.png');
+  hero.style.background='linear-gradient(0deg,#090c12ef,transparent),url('+JSON.stringify(source)+') center/cover';
  };
  render=function(){
   const q=document.querySelector('#search').value.trim().toLowerCase();
@@ -20,11 +20,11 @@ platformConfig.then(async config=>{
   for(const row of listed){
    const card=element('article','');card.className='card'+(row.paid?' locked':'');
    const cover=element('div','');cover.className='cover';
-   const coverUrl=row.cover||(row.id===grokId?'/grok-watermark.png':'');
+   const coverUrl=row.cover||(row.id===grokId?'/grok-watermark.png':'/default-news.png');
    if(coverUrl){
     const image=element('img','');image.src=coverUrl;image.alt=row.title;image.loading='lazy';cover.append(image);
     cover.classList.add('has-image');
-    image.onerror=()=>{image.remove();cover.classList.remove('has-image')};
+    image.onerror=()=>{image.onerror=null;image.src='/default-news.png'};
    }
    const b=element('a',row.paid?'Открыть по подписке →':'Читать статью →');b.className='link';b.href='/articles/'+row.id;
    if(row.paid&&!sessionStorage.getItem(tokenKey))b.onclick=e=>{e.preventDefault();subscribe(row.title)};

@@ -21,7 +21,7 @@ async function readPage(){
   const body=result.body;
   const doc=result.document||parseContent(body);
   const grok=id==='1a32f300-772e-4b93-b088-d87cff332168';
-  const cover=doc.cover||article.cover||(grok?'/grok-watermark.png':'');
+  const cover=doc.cover||article.cover||(grok?'/grok-watermark.png':'/default-news.png');
   if(cover){
    const intro=document.createElement('div');intro.className='article-intro '+(doc.coverPosition==='side'?'side':'center');
    const image=document.createElement('img');image.src=cover;image.alt=article.title;

@@ -15,9 +15,10 @@
   aspect-ratio: 16 / 9;
   margin: -22px -22px 24px;
   overflow: hidden;
-  background: linear-gradient(140deg, #463326, #171b1a);
+  background: url('/default-news.png') center / cover;
 }
 #grid .cover.has-image::after { display: none; }
+#grid .cover::after { display: none; }
 #grid .cover.has-image img {
   position: absolute;
   inset: 0;

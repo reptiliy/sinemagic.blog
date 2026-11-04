@@ -24,7 +24,7 @@ export function checkDocument(body){
   throw Error('Неверный блок статьи');
  }
 }
-export async function prepareUpload({kind,type,size}){
+export async function prepareUpload({kind,type,size,name},userId){
  if(!['cover','content'].includes(kind)||!formats[type]||!Number.isInteger(size)||size<=0||size>50*1024*1024||(kind==='cover'&&!type.startsWith('image/')))throw Error('Выберите изображение или видео до 50 МБ');
  const supabase=client(),bucket=buckets[kind];
  const found=await supabase.storage.getBucket(bucket);
@@ -33,9 +33,46 @@ export async function prepareUpload({kind,type,size}){
   if(made.error){const retry=await supabase.storage.getBucket(bucket);if(retry.error)throw Error('Не удалось подготовить хранилище')}
  }
  const path=randomUUID()+'.'+formats[type];
+ const originalName=typeof name==='string'?name.slice(0,200):path;
+ const record=await supabase.from('journal_media').insert({bucket,path,original_name:originalName,mime_type:type,size_bytes:size,uploaded_by:userId||null}).select('id').single();
+ if(record.error)throw Error('Не удалось зарегистрировать файл');
  const {data,error}=await supabase.storage.from(bucket).createSignedUploadUrl(path);
  if(error)throw Error('Не удалось подготовить загрузку');
- return {uploadUrl:data.signedUrl,path,url:kind==='cover'?supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl:null};
+ return {id:record.data.id,uploadUrl:data.signedUrl,path,url:kind==='cover'?supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl:null};
+}
+export async function completeUpload(id){
+ if(typeof id!=='string'||!/^[a-f0-9-]{36}$/.test(id))throw Error('Неверный файл');
+ const supabase=client();
+ const record=await supabase.from('journal_media').select('*').eq('id',id).single();
+ if(record.error)throw Error('Файл не найден');
+ const row=record.data;
+ const objects=await supabase.storage.from(row.bucket).list('',{search:row.path,limit:10});
+ const object=objects.data?.find(item=>item.name===row.path);
+ if(!object?.metadata?.size)throw Error('Загрузка файла ещё не завершена');
+ const update=await supabase.from('journal_media').update({state:'ready',size_bytes:object.metadata.size}).eq('id',id).select('id,state').single();
+ if(update.error)throw Error('Не удалось подтвердить сохранение');
+ return update.data;
+}
+export async function mediaLibrary(page=0){
+ const result=await client().from('journal_media').select('*,journal_article_media(article_id,placement)').eq('state','ready').order('created_at',{ascending:false}).range(page*40,page*40+39);
+ if(result.error)throw Error('Медиатека недоступна');
+ return Promise.all(result.data.map(async row=>{
+  const source=client().storage.from(row.bucket);
+  const url=row.bucket===buckets.cover?source.getPublicUrl(row.path).data.publicUrl:(await source.createSignedUrl(row.path,3600)).data?.signedUrl;
+  return {...row,url};
+ }));
+}
+export async function articleMediaRefs(body){
+ const doc=documentBody(body);
+ if(!doc)return [];
+ const refs=[];
+ if(doc.cover)refs.push({bucket:buckets.cover,path:doc.cover.split('/journal-covers/')[1],placement:'cover'});
+ for(const block of doc.blocks)if(block.type!=='text')refs.push({bucket:buckets.content,path:block.path,placement:'inline'});
+ return Promise.all(refs.map(async ref=>{
+  const {data,error}=await client().from('journal_media').select('id').eq('bucket',ref.bucket).eq('path',ref.path).eq('state','ready').single();
+  if(error)throw Error('Файл ещё не сохранён в медиатеке');
+  return {id:data.id,placement:ref.placement};
+ }));
 }
 export async function withMedia(body){
  const doc=documentBody(body);
