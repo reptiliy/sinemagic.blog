@@ -1,0 +1,6 @@
+.env
+.env.*
+!.env.example
+.vercel/
+site-settings*.tmp
+site-settings.json

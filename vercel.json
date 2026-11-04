@@ -1,0 +1,6 @@
+{
+  "buildCommand": null,
+  "outputDirectory": "public",
+  "functions": { "api/site.mjs": { "includeFiles": "dist/**" } },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/site" }]
+}
