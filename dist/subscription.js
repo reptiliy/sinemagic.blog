@@ -6,6 +6,15 @@ async function membershipWindow(title, billing=false, articleId){
  box.querySelector('.assist').onclick=()=>{modal.close();if(typeof toggleHelp==='function')toggleHelp(true);else location.assign('/?help=subscription')};
  join.textContent=billing?'Загружаем тариф…':'Оформление скоро откроется';
  if(!modal.open)modal.showModal();
+ const configuration=await platformConfig;
+ if(!configuration.providers?.paypal){
+  const paypalButton=document.createElement('button');
+  paypalButton.type='button';
+  paypalButton.className='paypal-pending';
+  paypalButton.textContent='PayPal — пока не подключён';
+  paypalButton.disabled=true;
+  join.after(paypalButton);
+ }
  try{
   const prices=billing?await journalApi('/api/prices'):[{currency:'EUR',amount:5},{currency:'USD',amount:5}];
   if(!prices.length)throw Error('Тариф пока недоступен.');
