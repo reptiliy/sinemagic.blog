@@ -28,7 +28,7 @@ export async function handler(req,res){
     if(path==='/default-news.png'&&req.method==='GET'){res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=86400'}).end(await readFile(new URL('./dist/default-news.png',import.meta.url)));return}
     if(path==='/grok-watermark.png'&&req.method==='GET'){res.writeHead(200,{'Content-Type':'image/png'}).end(await readFile(new URL('./dist/grok-watermark.png',import.meta.url)));return}
     if(path.startsWith('/api/'))return platform(req,res,path);
-    const extra=['admin.html','admin.css','admin.js','account.js','account.css','catalog.js','overview.js','settings.js','samples.js','article.js','article.css','content.js','composer.js','library.js'];
+    const extra=['admin.html','admin.css','admin.js','account.js','account.css','catalog.js','overview.js','settings.js','samples.js','article.js','article.css','content.js','composer.js','library.js','subscription.js'];
     const file=/^\/articles\/[a-z0-9-]+\/?$/.test(path)?'article.html':path==='/admin'?'admin.html':path==='/'?'index.html':extra.includes(path.slice(1))?path.slice(1):files.get(path);
     if(!file||req.method!=='GET'){res.writeHead(404).end();return}
     const bytes=await readFile(new URL('./dist/'+file,import.meta.url));

@@ -46,3 +46,4 @@ async function answer(text){
 }
 question.onsubmit=e=>{e.preventDefault();answer(field.value.trim())};
 document.querySelector('#suggestions').onclick=e=>{if(e.target.matches('button'))answer(e.target.textContent)};
+if(new URLSearchParams(location.search).get('help')==='subscription'){toggleHelp(true);answer('Нужна помощь с подпиской')}

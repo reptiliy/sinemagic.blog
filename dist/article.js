@@ -42,7 +42,13 @@ async function readPage(){
  }catch(error){
   if(headline.textContent==='Загрузка статьи…')headline.textContent='Статья недоступна';
   prose.textContent=error.message;
-  if(error.status===401||error.status===403){const link=document.createElement('a');link.href='/?subscribe=1';link.textContent=' Посмотреть подписку →';prose.append(link)}
+  if(error.status===401||error.status===403){
+   prose.textContent='Эта статья доступна по подписке.';
+   const openSubscription=async()=>membershipWindow(headline.textContent,(await platformConfig).billing);
+   const button=document.createElement('button');button.className='cta';button.textContent='Оформить подписку →';button.onclick=openSubscription;prose.append(document.createElement('br'),button);
+   await openSubscription();
+  }
  }
 }
 readPage();
+window.addEventListener('pageshow',event=>{if(event.persisted)location.reload()});
