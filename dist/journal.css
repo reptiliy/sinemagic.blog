@@ -32,3 +32,42 @@
 #grid .card h3 { margin: 16px 0 12px; }
 #grid .card p { margin: 0 0 24px; }
 #grid .card > .link { margin-top: auto; padding-top: 8px; }
+#grid .card .article-action {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 18px;
+  border: 1px solid #6b4c38;
+  border-radius: 9px;
+  color: #f5d8c3;
+  background: linear-gradient(135deg, #36291f, #27231e);
+  font: 700 14px/1.4 Manrope, Arial, sans-serif;
+  text-transform: none;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+#grid .article-action::after { content: '↗'; font-size: 18px; }
+#grid .card .article-action-paid {
+  color: #20110a;
+  background: #ff5c2e;
+  border-color: #ff5c2e;
+}
+#grid .card .article-action:hover {
+  background: #504031;
+  border-color: #d58b61;
+  box-shadow: 0 6px 20px #ff5c2e24;
+  transform: translateY(-2px);
+}
+#grid .card .article-action-paid:hover {
+  background: #ff875b;
+  border-color: #ffa17e;
+  box-shadow: 0 6px 24px #ff5c2e40;
+}
+#grid .article-action:focus-visible { outline: 2px solid #ffc4a2; outline-offset: 3px; }
+#grid .card .article-action:active { transform: translateY(0); }
+@media(prefers-reduced-motion:reduce) {
+  #grid .card .article-action { transition: none; transform: none; }
+}

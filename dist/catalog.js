@@ -26,8 +26,11 @@ platformConfig.then(async config=>{
     cover.classList.add('has-image');
     image.onerror=()=>{image.onerror=null;image.src='/default-news.png'};
    }
-   const b=element('a',row.paid?'Открыть по подписке →':'Читать статью →');b.className='link';b.href='/articles/'+row.id;
-   if(row.paid&&!sessionStorage.getItem(tokenKey))b.onclick=e=>{e.preventDefault();subscribe(row.title)};
+   const b=element('button',row.paid?'Оплатить':'Читать');
+   b.type='button';
+   b.className='link article-action'+(row.paid?' article-action-paid':'');
+   b.setAttribute('aria-label',(row.paid?'Оплатить доступ к статье «':'Читать статью «')+row.title+'»');
+   b.onclick=()=>row.paid&&!sessionStorage.getItem(tokenKey)?subscribe(row.title):open(row);
    card.append(cover,element('span',row.category==='practice'?'Практика':'Разбор'),element('h3',row.title),element('p',row.summary),b);grid.append(card);
   }
  };
