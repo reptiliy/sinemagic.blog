@@ -1,8 +1,9 @@
-async function membershipWindow(title, billing=false, articleId){
+async function membershipWindow(title, billing=false, articleId, contentKind='статью'){
  const modal=document.querySelector('#reader'),panel=document.querySelector('#panel');
  panel.innerHTML='<section class="pass"><div class="eyebrow">✦　SineMagic Journal</div><h3 id="dialogTitle">Подписка читателя</h3><p class="intro"></p><div class="pass-plan"><small>ЕЖЕМЕСЯЧНЫЙ ДОСТУП</small><div class="currency" aria-label="Валюта тарифа"></div><div class="rate" aria-live="polite"></div><ul><li>Все статьи по подписке</li><li>Полный архив журнала</li></ul></div><p class="terms" role="status"></p><button class="join" disabled></button><button class="assist">Помощь с подпиской</button></section>';
  const box=panel.firstChild,terms=box.querySelector('.terms'),join=box.querySelector('.join');
- box.querySelector('.intro').textContent=title?'Откройте статью «'+title+'» и остальные материалы журнала.':'Читайте закрытые разборы и практикумы журнала.';
+ box.querySelector('.intro').textContent=title?'Откройте '+contentKind+' «'+title+'» и остальные материалы журнала.':'Читайте закрытые статьи и смотрите видеоуроки.';
+ const lessonBenefit=document.createElement('li');lessonBenefit.textContent='Видеоуроки для подписчиков';box.querySelector('ul').append(lessonBenefit);
  box.querySelector('.assist').onclick=()=>{modal.close();if(typeof toggleHelp==='function')toggleHelp(true);else location.assign('/?help=subscription')};
  join.textContent=billing?'Загружаем тариф…':'Оформление скоро откроется';
  if(!modal.open)modal.showModal();

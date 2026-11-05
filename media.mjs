@@ -1,7 +1,7 @@
 import {createClient} from '@supabase/supabase-js';
 import {randomUUID} from 'node:crypto';
 
-const buckets={cover:'journal-covers',content:'journal-media'};
+const buckets={cover:'journal-covers',content:'journal-media',lesson:'journal-lessons'};
 const formats={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','video/mp4':'mp4','video/webm':'webm'};
 function client(){
  return createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SECRET_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -25,11 +25,13 @@ export function checkDocument(body){
  }
 }
 export async function prepareUpload({kind,type,size,name},userId){
- if(!['cover','content'].includes(kind)||!formats[type]||!Number.isInteger(size)||size<=0||size>50*1024*1024||(kind==='cover'&&!type.startsWith('image/')))throw Error('Выберите изображение или видео до 50 МБ');
+ if(!['cover','content','lesson'].includes(kind)||!formats[type]||!Number.isInteger(size)||size<=0||size>50*1024*1024||(kind==='cover'&&!type.startsWith('image/'))||(kind==='lesson'&&!type.startsWith('video/')))throw Error('Выберите допустимый файл до 50 МБ');
  const supabase=client(),bucket=buckets[kind];
  const found=await supabase.storage.getBucket(bucket);
+ if(kind==='lesson'&&found.data?.public)throw Error('Хранилище уроков должно быть закрытым');
  if(found.error){
-  const made=await supabase.storage.createBucket(bucket,{public:kind==='cover',fileSizeLimit:50*1024*1024,allowedMimeTypes:kind==='cover'?Object.keys(formats).filter(t=>t.startsWith('image/')):Object.keys(formats)});
+  const allowed=kind==='cover'?Object.keys(formats).filter(t=>t.startsWith('image/')):kind==='lesson'?['video/mp4','video/webm']:Object.keys(formats);
+  const made=await supabase.storage.createBucket(bucket,{public:kind==='cover',fileSizeLimit:50*1024*1024,allowedMimeTypes:allowed});
   if(made.error){const retry=await supabase.storage.getBucket(bucket);if(retry.error)throw Error('Не удалось подготовить хранилище')}
  }
  const path=randomUUID()+'.'+formats[type];
@@ -54,7 +56,7 @@ export async function completeUpload(id){
  return update.data;
 }
 export async function mediaLibrary(page=0){
- const result=await client().from('journal_media').select('*,journal_article_media(article_id,placement)').eq('state','ready').order('created_at',{ascending:false}).range(page*40,page*40+39);
+ const result=await client().from('journal_media').select('*,journal_article_media(article_id,placement)').in('bucket',['journal-covers','journal-media']).eq('state','ready').order('created_at',{ascending:false}).range(page*40,page*40+39);
  if(result.error)throw Error('Медиатека недоступна');
  return Promise.all(result.data.map(async row=>{
   const source=client().storage.from(row.bucket);

@@ -19,12 +19,13 @@ document.addEventListener('click',event=>{if(!siteHeader.contains(event.target))
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&siteHeader.classList.contains('nav-open'))closeMenu(true)});
 mobileMenu.addEventListener('change',()=>closeMenu());
 function setActive(hash){
+ const lessonsPage=/^\/lessons(?:\/|$)/.test(location.pathname);
  for(const link of menuLinks){
-  if(new URL(link.href).hash===hash)link.setAttribute('aria-current','location');
+  if(lessonsPage?new URL(link.href).pathname==='/lessons':new URL(link.href).hash===hash)link.setAttribute('aria-current','location');
   else link.removeAttribute('aria-current');
  }
 }
-const sections=menuLinks.map(link=>({hash:new URL(link.href).hash,element:document.querySelector(new URL(link.href).hash)})).filter(item=>item.element);
+const sections=menuLinks.map(link=>new URL(link.href).hash).filter(Boolean).map(hash=>({hash,element:document.querySelector(hash)})).filter(item=>item.element);
 let framePending=false;
 function updateActive(){
  framePending=false;

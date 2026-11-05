@@ -2,6 +2,7 @@ import {settings,validated,persist} from './branding.mjs';
 import {documentBody,checkDocument,prepareUpload,completeUpload,mediaLibrary,articleMediaRefs,withMedia} from './media.mjs';
 import {billingConfiguration,billingOverview,saveReaderName,hasBillingAccess,handleBillingWebhook,paypalPrices,paypalCheckout} from './billing.mjs';
 import {exchangeQuote,quoteCents} from './exchange.mjs';
+import {lessonCatalog,lessonMetadata,lessonVideo,lessonVideos,saveLesson} from './lessons.mjs';
 const env=process.env;
 const configured=()=>Boolean(env.SUPABASE_URL&&env.SUPABASE_SECRET_KEY&&env.SUPABASE_PUBLISHABLE_KEY);
 const currencies=['USD','EUR'];
@@ -47,6 +48,21 @@ async function route(req,path){
  if(path==='/api/exchange'&&req.method==='GET')return exchangeQuote();
  if(path==='/api/config')return {connected:configured(),url:env.SUPABASE_URL,key:env.SUPABASE_PUBLISHABLE_KEY,billing:billingConfiguration().stripe||billingConfiguration().paypal,providers:billingConfiguration()};
  if(!configured())throw new Failure(503,'Подключите проект Supabase');
+ if(path==='/api/lessons'&&req.method==='GET')return lessonCatalog();
+ if(/^\/api\/lessons\/[a-f0-9-]{36}$/.test(path)&&req.method==='GET'){
+  const lesson=await lessonMetadata(path.split('/').pop());
+  if(!lesson)throw new Failure(404,'Урок не опубликован');
+  return {...lesson,cover:lesson.cover?process.env.SUPABASE_URL+'/storage/v1/object/public/'+lesson.cover.bucket+'/'+lesson.cover.path:'/default-news.png'};
+ }
+ if(/^\/api\/lessons\/[a-f0-9-]{36}\/video$/.test(path)&&req.method==='GET'){
+  const id=path.split('/')[3],lesson=await lessonMetadata(id);
+  if(!lesson)throw new Failure(404,'Урок не опубликован');
+  if(lesson.paid){
+   const viewer=await identity(req);
+   if(viewer.id!==env.ADMIN_USER_ID&&!await subscription(viewer))throw new Failure(403,'Для просмотра нужна подписка');
+  }
+  return lessonVideo(id);
+ }
  if(path==='/api/prices'){
   const prices=billingConfiguration().stripe?await Promise.all(currencies.map(async currency=>{
    const p=await stripe('prices/'+encodeURIComponent(priceId(currency)));
@@ -70,6 +86,17 @@ async function route(req,path){
   return withMedia(article.body);
  }
  const user=await identity(req);
+ if(path==='/api/admin/lessons'){
+  if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
+  if(req.method==='GET')return lessonCatalog(true);
+  if(req.method==='POST'){
+   try{return await saveLesson(await payload(req),user.id)}catch(error){throw new Failure(400,error.message)}
+  }
+ }
+ if(path==='/api/admin/lesson-videos'&&req.method==='GET'){
+  if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
+  return lessonVideos();
+ }
  if(path==='/api/admin/reader'&&req.method==='POST'){
   if(user.id!==env.ADMIN_USER_ID)throw new Failure(403,'Доступ только для редактора');
   const {userId,name}=await payload(req);
