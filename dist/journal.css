@@ -85,3 +85,38 @@
 @media(max-width:1050px){.pricing-section{grid-template-columns:1fr 1fr}.pricing-heading{grid-column:1/-1}.pricing-heading>p:not(.eyebrow){max-width:500px}}
 @media(max-width:650px){.pricing-section{grid-template-columns:1fr;padding-top:65px;padding-bottom:65px}.pricing-card{padding:28px 24px}.pricing-heading{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){.pricing-button{transition:none}}
+#reader {
+  position: fixed;
+  box-sizing: border-box;
+  width: min(460px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 22px;
+  overflow-y: auto;
+  border-radius: 16px;
+}
+#reader > form { position: absolute; right: 12px; top: 12px; margin: 0; float: none; }
+#reader > form button { width: 30px; height: 30px; padding: 0; border-radius: 6px; }
+#reader .pass > .eyebrow { margin: 0 40px 12px 0; font-size: 9px; }
+#reader h3 { font-size: clamp(24px, 4vw, 30px); line-height: 1.12; margin: 0 18px 10px 0; }
+#reader .pass .intro { font-size: 13px; line-height: 1.5; margin: 0 0 14px; }
+#reader .pass-plan { padding: 15px 16px; border-radius: 10px; }
+#reader .pass-plan > small { font-size: 9px; }
+#reader .payment-provider { margin: 10px 0 8px; padding: 8px 10px; font-size: 12px; }
+#reader .currency { margin: 8px 0 10px; }
+#reader .currency button { padding: 6px 10px; font-size: 10px; }
+#reader .rate { font-size: clamp(27px, 5vw, 32px); line-height: 1.2; }
+#reader .pass .exchange-note { font-size: 10px; line-height: 1.45; margin: 8px 0 10px; }
+#reader .pass ul { margin: 0; padding-top: 10px; }
+#reader .pass li { font-size: 12px; line-height: 1.4; margin: 6px 0; }
+#reader .pass .terms { font-size: 11px; line-height: 1.45; margin: 12px 0; }
+#reader .pass .join { padding: 11px 12px; font-size: 13px; }
+#reader .pass .assist { padding: 8px; margin-top: 3px; font-size: 11px; }
+@media (max-height: 620px) {
+  #reader { padding: 16px; }
+  #reader .pass > .eyebrow { margin-bottom: 8px; }
+  #reader h3 { font-size: 25px; }
+  #reader .pass .intro { margin-bottom: 10px; font-size: 12px; }
+  #reader .pass-plan { padding: 12px; }
+  #reader .rate { font-size: 28px; }
+  #reader .pass .terms { margin: 8px 0; }
+}
