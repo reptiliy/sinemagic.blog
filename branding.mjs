@@ -31,7 +31,7 @@ export async function persist(settings){
 const escape=value=>value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 export function branded(html,s,admin){
  const name=escape(s.name),desc=escape(s.description);
- const icon=s.favicon?'<link rel="icon" type="image/png" href="'+s.favicon+'">':'';
+ const icon='<link rel="icon" type="image/png" href="'+(s.favicon||'/favicon.png?v=orange-star-1')+'">';
  const brand=(s.logo?'<img alt="" style="height:32px;max-width:110px;vertical-align:middle;object-fit:contain" src="'+s.logo+'"> ':'✦ ')+(s.name===defaults.name?'Sine<span>Magic</span>':name);
  return html.replace(/<title>.*?<\/title>/,()=>'<title>'+(admin?'Редакция · ':'')+name+'</title><meta name="description" content="'+desc+'"><meta name="keywords" content="'+escape(s.keywords)+'">'+icon)
  .replaceAll('✦ Sine<span>Magic</span>',()=>brand)

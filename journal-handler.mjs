@@ -21,6 +21,10 @@ export async function handler(req,res){
       res.writeHead(200,{'Content-Type':'application/json'}).end(JSON.stringify({answer:(await upstream.json()).choices[0].message.content}));return;
     }
     const path=new URL(req.url,'http://localhost').pathname;
+    if((path==='/favicon.png'||path==='/favicon.ico')&&req.method==='GET'){
+      res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=86400'}).end(await readFile(new URL('./dist/favicon.png',import.meta.url)));
+      return;
+    }
     if(path==='/admin/'&&req.method==='GET'){
       const query=new URL(req.url,'http://localhost').search;
       res.writeHead(308,{'Location':'/admin'+query}).end();
