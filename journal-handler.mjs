@@ -21,8 +21,8 @@ export async function handler(req,res){
       res.writeHead(200,{'Content-Type':'application/json'}).end(JSON.stringify({answer:(await upstream.json()).choices[0].message.content}));return;
     }
     const path=new URL(req.url,'http://localhost').pathname;
-    if((path==='/favicon.png'||path==='/favicon.ico')&&req.method==='GET'){
-      res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=86400'}).end(await readFile(new URL('./dist/favicon.png',import.meta.url)));
+    if(['/favicon.png','/favicon-v2.png','/favicon.ico'].includes(path)&&req.method==='GET'){
+      res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=86400'}).end(await readFile(new URL('./dist/favicon-v2.png',import.meta.url)));
       return;
     }
     if(path==='/admin/'&&req.method==='GET'){
